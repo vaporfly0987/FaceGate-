@@ -1,0 +1,7 @@
+/build/
+/dist/
+/homebrew-facegate/
+/models/*.onnx
+__pycache__/
+*.pyc
+.DS_Store

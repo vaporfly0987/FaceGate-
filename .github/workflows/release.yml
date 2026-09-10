@@ -1,0 +1,23 @@
+name: Prepare source release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/test.sh
+      - name: Prepare archive and Homebrew formula
+        env:
+          FACEGATE_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 scripts/package.py
+          python3 scripts/make_formula.py --archive dist/facegate-0.1.0.tar.gz --repository "$FACEGATE_REPOSITORY" --output dist/facegate.rb
+          cd dist
+          sha256sum facegate-0.1.0.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: facegate-release-files
+          path: dist/

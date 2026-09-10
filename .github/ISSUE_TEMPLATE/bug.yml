@@ -1,0 +1,26 @@
+name: Compatibility or recognition problem
+description: Report a problem without uploading biometric data or passwords
+body:
+  - type: textarea
+    attributes:
+      label: Mac model, macOS version and build
+      description: Include whether this is a developer beta.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include the FaceGate status message. Do not include your password or face templates.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Which stage failed?
+      options:
+        - Build or Homebrew installation
+        - Enrollment
+        - Recognition test
+        - Camera capture while locked
+        - Password-field verification
+        - Credential submission
+        - Sleep or resume

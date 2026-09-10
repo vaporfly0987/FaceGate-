@@ -1,0 +1,39 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/test.sh
+  intel-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: brew install cmake opencv
+      - name: Build Intel app, verify models, and test
+        run: bash scripts/build.sh
+      - name: Inspect app
+        run: |
+          file build/FaceGate.app/Contents/MacOS/FaceGate
+          /usr/bin/codesign --verify --strict --verbose=2 build/FaceGate.app
+          /usr/bin/plutil -lint build/FaceGate.app/Contents/Info.plist
+          build/FaceGate.app/Contents/MacOS/FaceGate --version
+          build/FaceGate.app/Contents/MacOS/FaceGate --diagnose
+      - name: Package app for debugging on a matching Homebrew environment
+        run: /usr/bin/ditto -c -k --keepParent build/FaceGate.app build/FaceGate-intel.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FaceGate-${{ matrix.os }}-debug
+          path: build/FaceGate-intel.zip
+          retention-days: 7

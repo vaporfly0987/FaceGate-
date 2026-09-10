@@ -1,0 +1,14 @@
+name: Manual Intel beta build
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  beta:
+    # Run manually only on your isolated test Mac. Never attach a personal
+    # self-hosted runner to untrusted pull_request jobs.
+    runs-on: [self-hosted, macOS, X64, facegate-beta]
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/build.sh
+      - run: build/FaceGate.app/Contents/MacOS/FaceGate --diagnose

@@ -1,0 +1,61 @@
+class Facegate < Formula
+  desc "Local webcam face recognition with experimental Mac unlock assistance"
+  homepage @HOMEPAGE@
+  url @SOURCE_URL@
+  sha256 @SOURCE_SHA@
+  version "0.1.0"
+  license "MIT"
+
+  depends_on :macos
+  depends_on arch: :x86_64
+  depends_on macos: :sonoma
+  depends_on "cmake" => :build
+  depends_on "opencv"
+
+@MODEL_RESOURCES@
+
+  def install
+    resources.each { |r| r.stage { (buildpath/"models").install Dir["*.onnx"] } }
+    system "cmake", "-S", ".", "-B", "build", *std_cmake_args,
+           "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0", "-DBUILD_TESTING=ON",
+           "-DOpenCV_DIR=#{Formula["opencv"].opt_lib}/cmake/opencv4"
+    system "cmake", "--build", "build", "--parallel", "2"
+    system "ctest", "--test-dir", "build", "--output-on-failure"
+    libexec.install "build/FaceGate.app"
+    (bin/"facegate").write <<~SH
+      #!/bin/bash
+      set -euo pipefail
+      case "${1:-open}" in
+        open) exec /usr/bin/open "#{opt_libexec}/FaceGate.app" ;;
+        doctor) exec "#{opt_libexec}/FaceGate.app/Contents/MacOS/FaceGate" --diagnose ;;
+        --version) exec "#{opt_libexec}/FaceGate.app/Contents/MacOS/FaceGate" --version ;;
+        *) echo 'Usage: facegate [open|doctor|--version]' >&2; exit 2 ;;
+      esac
+    SH
+    (bin/"facegate").chmod 0755
+  end
+
+  service do
+    run [opt_libexec/"FaceGate.app/Contents/MacOS/FaceGate", "--background"]
+    keep_alive true
+    process_type :interactive
+    throttle_interval 10
+  end
+
+  def caveats
+    <<~EOS
+      Open FaceGate and complete camera permission, enrollment, and recognition testing:
+        facegate
+      Then keep it running after login:
+        brew services start facegate
+      If FaceGate is already open, quit it before starting the service.
+      Never run the service with sudo. A normal sign-in is required after restarting.
+      Webcam recognition is not Apple Face ID. Experimental password-assisted unlock
+      is off by default and may be blocked by macOS, including developer betas.
+    EOS
+  end
+
+  test do
+    assert_match "FaceGate 0.1.0", shell_output("#{bin}/facegate --version")
+  end
+end
